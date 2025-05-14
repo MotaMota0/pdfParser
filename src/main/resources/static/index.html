@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Parser Web App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex justify-center items-center min-h-screen">
+<div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl">
+    <h1 class="text-2xl font-bold mb-4 text-center">PDF Parser Web App</h1>
+    <div class="space-y-4">
+        <div>
+            <label class="block text-sm font-medium">Upload PDF</label>
+            <input type="file" id="pdfFile" accept=".pdf" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+            <button onclick="handleParsePDF()" class="mt-2 w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Parse PDF</button>
+        </div>
+        <div>
+            <label class="block text-sm font-medium">Search by Name</label>
+            <div class="flex space-x-2">
+                <input type="text" id="searchKeyword" class="flex-1 border rounded px-3 py-2" placeholder="Enter name" />
+                <button onclick="handleSearch()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Search</button>
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm font-medium">Search by IIN</label>
+            <div class="flex space-x-2">
+                <input type="text" id="iin" class="flex-1 border rounded px-3 py-2" placeholder="Enter IIN" />
+                <button onclick="handleSearchByIIN()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Search</button>
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm font-medium">Search by University Code</label>
+            <div class="flex space-x-2">
+                <input type="number" id="universityCode" class="flex-1 border rounded px-3 py-2" placeholder="Enter code" />
+                <button onclick="handleSearchByUniversity()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Search</button>
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm font-medium">Search by Score Range</label>
+            <div class="flex space-x-2">
+                <input type="number" id="scoreMin" class="flex-1 border rounded px-3 py-2" placeholder="Min score" />
+                <input type="number" id="scoreMax" class="flex-1 border rounded px-3 py-2" placeholder="Max score" />
+                <button onclick="handleSearchByScoreRange()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Search</button>
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm font-medium">Output</label>
+            <textarea id="output" readonly class="w-full h-40 border rounded px-3 py-2" placeholder="Results will appear here"></textarea>
+        </div>
+    </div>
+</div>
+<script>
+    const format = (a) => `${a.ictNumber} | ${a.fullname} | ${a.totalScore} | ${a.universityCode}\n`;
+
+    async function handleParsePDF() {
+        const fileInput = document.getElementById('pdfFile');
+        const file = fileInput.files[0];
+        if (file) {
+            const formData = new FormData();
+            formData.append('file', file);
+            try {
+                const response = await fetch('/api/appreoments/parse', {
+                    method: 'POST',
+                    body: formData
+                });
+                const applicants = await response.json();
+                const output = document.getElementById('output');
+                output.value = applicants.map(a => `${a.fullname} added.\n`).join('');
+            } catch (e) {
+                console.error(e);
+                document.getElementById('output').value = 'Error parsing PDF';
+            }
+        }
+    }
+
+    async function handleSearch() {
+        const keyword = document.getElementById('searchKeyword').value.trim();
+        if (keyword) {
+            try {
+                const response = await fetch(`/api/appreoments/search/name?keyword=${encodeURIComponent(keyword)}`);
+                const results = await response.json();
+                document.getElementById('output').value = results.map(format).join('');
+            } catch (e) {
+                console.error(e);
+                document.getElementById('output').value = 'Error searching';
+            }
+        }
+    }
+
+    async function handleSearchByIIN() {
+        const iin = document.getElementById('iin').value.trim();
+        if (iin) {
+            try {
+                const response = await fetch(`/api/appreoments/search/iin?iin=${encodeURIComponent(iin)}`);
+                const results = await response.json();
+                document.getElementById('output').value = results.map(format).join('');
+            } catch (e) {
+                console.error(e);
+                document.getElementById('output').value = 'Error searching';
+            }
+        }
+    }
+
+    async function handleSearchByUniversity() {
+        const code = document.getElementById('universityCode').value.trim();
+        if (code) {
+            try {
+                const response = await fetch(`/api/appreoments/search/university?code=${code}`);
+                const results = await response.json();
+                document.getElementById('output').value = results.map(format).join('');
+            } catch (e) {
+                console.error(e);
+                document.getElementById('output').value = 'Error searching';
+            }
+        }
+    }
+
+    async function handleSearchByScoreRange() {
+        const min = document.getElementById('scoreMin').value.trim();
+        const max = document.getElementById('scoreMax').value.trim();
+        if (min && max) {
+            try {
+                const response = await fetch(`/api/appreoments/search/score?min=${min}&max=${max}`);
+                const results = await response.json();
+                document.getElementById('output').value = results.map(format).join('');
+            } catch (e) {
+                console.error(e);
+                document.getElementById('output').value = 'Error searching';
+            }
+        }
+    }
+</script>
+</body>
+</html>
